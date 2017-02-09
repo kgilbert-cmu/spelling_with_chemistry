@@ -2,6 +2,7 @@ import PeriodicTable
 import logging
 import argparse
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', '--debug',
                     help = "Print all debug output (for devs)",
@@ -20,6 +21,7 @@ log = logging.getLogger()
 
 
 def greedy(chars, continuation, syms, results = [], fuzzy = args.fuzzy):
+	log.debug(f"")
 	log.debug(f"Chars remaining: {chars}")
 	log.debug(f"Chars so far: {continuation}")
 	log.debug(f"Collected resuls: {results}")
@@ -58,7 +60,9 @@ def greedy(chars, continuation, syms, results = [], fuzzy = args.fuzzy):
 		else:
 			if fuzzy:
 				log.debug(f"Fuzzy matching enabled. Ignoring symbols '{first}' '{second}'")
-				return greedy(chars[2:], continuation, syms, results)
+				tmp1 = greedy(chars[1:], continuation, syms, results)
+				tmp2 = greedy(chars[2:], continuation, syms, tmp1)
+				return tmp2
 			else:
 				log.critical(f"Cannot match next symbols '{first}' '{second}'")
 				return []
@@ -88,9 +92,12 @@ def main():
 	largestWeight = 0
 	heaviestChain = []
 	for line in output:
+		evaluate = sum([PT.getWeight(symbol = s) for s in line])
 		if args.fuzzy and len("".join(line)) > len("".join(heaviestChain)):
 			log.debug(f"Fuzzy matching enabled. Chain {line} is automatically a better length match.")
-		evaluate = sum([PT.getWeight(symbol = s) for s in line])
+			largestWeight = evaluate
+			heaviestChain = line
+			continue
 		log.info(f"Evaluation of chain {line} has weight {evaluate}")
 		if evaluate > largestWeight:
 			log.debug(f"Replacing heaviest chain (previous: {largestWeight})")
