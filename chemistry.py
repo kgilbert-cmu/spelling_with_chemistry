@@ -11,11 +11,15 @@ parser.add_argument('-v', '--verbose',
                     help = "Print info messages (for users)",
                     action = "store_const", dest = "loglevel",
                     const = logging.INFO)
+parser.add_argument('-f', '--fuzzy',
+                    help = "Allow fuzzy matching for flexible spelling",
+                    action = "store_true", dest = "fuzzy")
 args = parser.parse_args()
 logging.basicConfig(level = args.loglevel)
 log = logging.getLogger()
 
-def greedy(chars, continuation, syms, results = []):
+
+def greedy(chars, continuation, syms, results = [], fuzzy = args.fuzzy):
 	log.debug(f"Chars remaining: {chars}")
 	log.debug(f"Chars so far: {continuation}")
 	log.debug(f"Collected resuls: {results}")
@@ -28,10 +32,13 @@ def greedy(chars, continuation, syms, results = []):
 		if first in syms:
 			log.debug(f"Final character {first}")
 			return greedy(chars[1:], continuation + [first], syms, results)
-			
 		else:
-			log.critical(f"Cannot match next symbol '{first}'")
-			return []
+			if fuzzy:
+				log.debug(f"Fuzzy matching enabled. Ignoring symbol '{first}'")
+				return greedy(chars[1:], continuation, syms, results)
+			else:
+				log.critical(f"Cannot match next symbol '{first}'")
+				return []
 	elif len(chars) >= 2:
 		first = chars[0]
 		second = chars[1]
@@ -49,8 +56,13 @@ def greedy(chars, continuation, syms, results = []):
 			log.debug(f"Two characters {first+second}")
 			return greedy(chars[2:], continuation + [first + second], syms, results)
 		else:
-			log.critical(f"Cannot match next symbols '{first}' '{second}'")
-			return []
+			if fuzzy:
+				log.debug(f"Fuzzy matching enabled. Ignoring symbols '{first}' '{second}'")
+				return greedy(chars[2:], continuation, syms, results)
+			else:
+				log.critical(f"Cannot match next symbols '{first}' '{second}'")
+				return []
+
 
 def candidates(chars):
 	PT = PeriodicTable.PeriodicTable()
@@ -62,19 +74,22 @@ def candidates(chars):
 			chains[i][j] = string[0].upper() + string[1:] 
 	return chains
 
+
 def main():
 	PT = PeriodicTable.PeriodicTable()
 	syms = PT.allAbbrevs()
 	text = input("word: ")
 	log.debug(f"Received input: {text}")
 	output = candidates(list(text.lower()))
-	if len(output) == 0:
+	if len(output) == 0 or output == [[]]:
 		print("The input cannot be spelled with chemistry.")
 		return
 	log.debug(f"Found {len(output)} candidates. Printing...")
 	largestWeight = 0
 	heaviestChain = []
 	for line in output:
+		if args.fuzzy and len("".join(line)) > len("".join(heaviestChain)):
+			log.debug(f"Fuzzy matching enabled. Chain {line} is automatically a better length match.")
 		evaluate = sum([PT.getWeight(symbol = s) for s in line])
 		log.info(f"Evaluation of chain {line} has weight {evaluate}")
 		if evaluate > largestWeight:
@@ -86,7 +101,9 @@ def main():
 	names = [PT.getElement(s) for s in heaviestChain]
 	print("".join(heaviestChain) + f" ({', '.join(names)})")
 
+
 if __name__ == "__main__":
 	while True:
 		main()
 		print("")
+
