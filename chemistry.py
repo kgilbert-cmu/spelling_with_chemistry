@@ -36,11 +36,11 @@ def greedy(chars, continuation, syms, results = []):
 		first = chars[0]
 		second = chars[1]
 		if first in syms and first + second in syms:
-			log.info(f"Ambiguous {first+second}. Branching...")
+			log.debug(f"Ambiguous {first+second}. Branching...")
 			tmp1 = greedy(chars[1:], continuation + [first], syms, results)
-			log.info(f"First branch ended. Received {tmp1}")
+			log.debug(f"First branch ended. Received {tmp1}")
 			tmp2 = greedy(chars[2:], continuation + [first + second], syms, tmp1)
-			log.info(f"Second branch ended. Received {tmp2}")
+			log.debug(f"Second branch ended. Received {tmp2}")
 			return tmp2
 		elif first in syms:
 			log.debug(f"Single character {first}")
@@ -68,11 +68,25 @@ def main():
 	text = input("word: ")
 	log.debug(f"Received input: {text}")
 	output = candidates(list(text.lower()))
-	log.info(f"Found {len(output)} candidates. Printing...")
+	if len(output) == 0:
+		print("The input cannot be spelled with chemistry.")
+		return
+	log.debug(f"Found {len(output)} candidates. Printing...")
+	largestWeight = 0
+	heaviestChain = []
 	for line in output:
-		names = [PT.getElement(s) for s in line]
-		print("".join(line) + f" ({', '.join(names)})")
+		evaluate = sum([PT.getWeight(symbol = s) for s in line])
+		log.info(f"Evaluation of chain {line} has weight {evaluate}")
+		if evaluate > largestWeight:
+			log.debug(f"Replacing heaviest chain (previous: {largestWeight})")
+			heaviestChain = line
+			largestWeight = evaluate
+		else:
+			log.debug(f"Ignoring lighter chain (previous: {largestWeight})")
+	names = [PT.getElement(s) for s in heaviestChain]
+	print("".join(heaviestChain) + f" ({', '.join(names)})")
 
 if __name__ == "__main__":
 	while True:
 		main()
+		print("")
