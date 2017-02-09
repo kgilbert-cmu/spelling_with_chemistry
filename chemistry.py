@@ -69,9 +69,15 @@ def main():
 	log.debug(f"Received input: {text}")
 	output = candidates(list(text.lower()))
 	log.info(f"Found {len(output)} candidates. Printing...")
+	largestWeight = 0
+	heaviestChain = []
 	for line in output:
-		names = [PT.getElement(s) for s in line]
-		print("".join(line) + f" ({', '.join(names)})")
+		evaluate = sum([PT.getWeight(symbol = s) for s in line])
+		if evaluate > largestWeight:
+			heaviestChain = line
+			largestWeight = evaluate
+	names = [PT.getElement(s) for s in heaviestChain]
+	print("".join(heaviestChain) + f" ({', '.join(names)})")
 
 if __name__ == "__main__":
 	while True:
