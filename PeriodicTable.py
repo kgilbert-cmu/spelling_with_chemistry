@@ -16,8 +16,14 @@ class PeriodicTable:
 	
 	def getWeight(self, symbol = None, element = None):
 		if symbol is not None:
-			return float(self.sym_to_w[symbol])
+			val = self.sym_to_w[symbol]
 		if element is not None:
-			return float(self.ele_to_w[element])
-		return 0
-
+			val = self.ele_to_w[element]
+		try:
+			val = float(val)
+		except ValueError:
+			val = float(val[1:-1]) # ignore parenthesis in '(123)'
+		except NameError:
+			# symbol and element not specified or not found
+			return 0
+		return val
